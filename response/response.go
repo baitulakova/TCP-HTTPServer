@@ -3,6 +3,7 @@ package response
 import (
 	"github.com/baitulakova/TCP-HTTPServer/request"
 	"errors"
+	"strconv"
 )
 
 type Response struct{
@@ -17,7 +18,7 @@ type Status struct {
 	StatusText string
 }
 
-var StatusList=map[int]string{
+var statusList=map[int]string{
 	200:"OK",
 	404:"Not found",
 	500:"Internal Server Error",
@@ -26,7 +27,7 @@ var StatusList=map[int]string{
 
 func (res *Response) SetStatusCode(code int)error{
 	res.Status.StatusCode=code
-	res.Status.StatusText=StatusList[code]
+	res.Status.StatusText=statusList[code]
 	if res.Status.StatusText==""{
 		err:=errors.New("Error setting status code ")
 		return err
@@ -35,27 +36,26 @@ func (res *Response) SetStatusCode(code int)error{
 }
 
 func (res *Response) SetHeader(HeaderKey string,HeaderValues string){
-	res.Headers=make(map[string]string)
 	res.Headers[HeaderKey]=HeaderValues
 }
 
-var NotFound=[]byte(`
+var notFound=[]byte(`
 	<!DOCTYPE html>
 	<html>
 	<head>
 	<title>Not Found</title
 	</head>
 	<body>
-	<h5>Not Found</h5>
+	<h3>Not Found</h3>
 	</body>
 	</html>
 `)
 
-var MainPage=[]byte(`
+var mainPage=[]byte(`
 	<!DOCTYPE html>
 	<html>
 	<head>
-	<title>Hello</title
+	<title>Hello</title>
 	</head>
 	<body>
 	<h1>Server is working</h1>
@@ -65,20 +65,33 @@ var MainPage=[]byte(`
 
 func FormResponse(req request.Request)(res Response){
 	res.Method = "HTTP/1.0"
+	res.Headers=make(map[string]string)
 	if req.Method=="GET" {
 		res.SetStatusCode(200)
 		res.SetHeader("Content-Type", "text/html; charset=utf-8")
 		res.SetHeader("Connection", "Close")
 		if req.URL.String()=="/"{
-			res.Body=MainPage
+			res.Body=mainPage
+		}else {
+			res.SetStatusCode(404)
+			res.Body=notFound
 		}
 	}else if req.Method=="POST"{
 		if req.Body==nil{
 			res.SetStatusCode(404)
 			res.SetHeader("Content-Type","text/html; charset=utf-8")
-			res.Body=NotFound
+			res.Body=notFound
 		}
 	}
 	return res
 }
 
+func (res *Response)MakingResponse()(response []byte){
+	responseString:=res.Method+" "+strconv.Itoa(res.Status.StatusCode)+" "+res.Status.StatusText+"\n"
+	for k,v:=range res.Headers{
+		responseString+=k+": "+v+"\n"
+	}
+	responseString+=string(res.Body)
+	response=[]byte(responseString)
+	return response
+}

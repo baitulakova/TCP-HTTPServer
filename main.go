@@ -5,10 +5,11 @@ import (
 	"github.com/Sirupsen/logrus"
 	"os"
 	"github.com/baitulakova/TCP-HTTPServer/request"
+	"github.com/baitulakova/TCP-HTTPServer/response"
 )
 
 //temporary file to store request
-const filename  ="request.txt"
+const filename ="request.txt"
 
 type Server struct {
 	Address string
@@ -48,7 +49,7 @@ type Client struct {
 
 func (c *Client)Close(){
 	c.Connection.Close()
-	logrus.Info("Connection with %v closed",c.Connection.RemoteAddr().String())
+	logrus.Infof("Connection with %v closed",c.Connection.RemoteAddr().String())
 }
 
 //GetData read data from connection
@@ -90,7 +91,8 @@ func (c *Client)HandleConnection(){
 	file.Close()
 	requestLines:=request.HandleRequest(filename)
 	req:=request.FormRequest(requestLines)
-	logrus.Info(req)
+	res:=response.FormResponse(req)
+	c.WriteBytes(res.MakingResponse())
 	c.Close()
 }
 
