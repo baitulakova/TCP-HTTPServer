@@ -61,6 +61,14 @@ func (c *Client)GetData()(string,error){
 	return string(data[:n]),err
 }
 
+func (c *Client)WriteBytes(msg []byte){
+	c.Connection.Write(msg)
+}
+
+func (c *Client)WriteString(msg string){
+	c.Connection.Write([]byte(msg))
+}
+
 func (c *Client)HandleConnection(){
 	logrus.Info("Serving ",c.Connection.RemoteAddr().String())
 	Request,err:=c.GetData()
@@ -83,6 +91,7 @@ func (c *Client)HandleConnection(){
 	requestLines:=request.HandleRequest(filename)
 	req:=request.FormRequest(requestLines)
 	logrus.Info(req)
+	c.Close()
 }
 
 func main(){
