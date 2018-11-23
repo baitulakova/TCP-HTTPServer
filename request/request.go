@@ -14,7 +14,7 @@ type Request struct {
 	URL *url.URL
 	Protocol string
 	Headers map[string][]string
-	Body io.ReadCloser
+	Body []byte
 }
 
 //Reads request from file, reads line by line
@@ -33,7 +33,6 @@ func HandleRequest(filepath string)[]string{
 	}
 	file.Close()
 	os.Remove(filepath)
-	RequestLines=RequestLines[:len(RequestLines)-1]
 	return RequestLines
 }
 
@@ -69,11 +68,19 @@ func FormRequest(RequestLines []string)(req Request){
 		if len(ListOfHeaders)>0 {
 			for i := 0; i < len(ListOfHeaders); i++ {
 				header := strings.SplitN(ListOfHeaders[i], ":", 2)
-				keyHeader := header[0]
-				valueHeader := header[1]
-				var values []string
-				values = append(values, valueHeader)
-				req.Headers[keyHeader] = values
+				if len(header) == 2 {
+					keyHeader := header[0]
+					valueHeader := header[1]
+					var values []string
+					values = append(values, valueHeader)
+					req.Headers[keyHeader] = values
+				}else{
+					if header[0]==""{
+						continue
+					}else {
+						req.Body=[]byte(header[0])
+					}
+				}
 			}
 		}else{
 			logrus.Error("Length of headers is 0")
