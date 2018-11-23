@@ -49,14 +49,13 @@ type Client struct {
 
 func (c *Client)Close(){
 	c.Connection.Close()
-	logrus.Infof("Connection with %v closed",c.Connection.RemoteAddr().String())
 }
 
 //GetData read data from connection
 func (c *Client)GetData()(string,error){
 	data:=make([]byte,1024)
 	n,err:=c.Connection.Read(data)
-	if err!=nil{
+	if err!=nil||n==0{
 		return "",err
 	}
 	return string(data[:n]),err
@@ -71,27 +70,25 @@ func (c *Client)WriteString(msg string){
 }
 
 func (c *Client)HandleConnection(){
-	logrus.Info("Serving ",c.Connection.RemoteAddr().String())
-	Request,err:=c.GetData()
-	if err!=nil{
+	Request, err := c.GetData()
+	if err != nil {
 		c.Close()
 	}
-
 	//creates temporary file to store request
-	file,err:=os.Create(filename)
-	if err!=nil{
-		logrus.Error("Error creating file: ",err)
+	file, err := os.Create(filename)
+	if err != nil {
+		logrus.Error("Error creating file: ", err)
 		c.Close()
 	}
-	_,err=file.WriteString(Request)
-	if err!=nil{
+	_, err = file.WriteString(Request)
+	if err != nil {
 		logrus.Error("Error writing request to file")
 		c.Close()
 	}
 	file.Close()
-	requestLines:=request.HandleRequest(filename)
-	req:=request.FormRequest(requestLines)
-	res:=response.FormResponse(req)
+	requestLines := request.HandleRequest(filename)
+	req := request.FormRequest(requestLines)
+	res := response.FormResponse(req)
 	c.WriteBytes(res.MakingResponse())
 	c.Close()
 }
