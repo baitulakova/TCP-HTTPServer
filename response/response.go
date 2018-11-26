@@ -57,6 +57,18 @@ var notFound=[]byte(`
 	</html>
 `)
 
+var badRequest=[]byte(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<title>Bad request</title
+	</head>
+	<body>
+	<h3>Bad request</h3>
+	</body>
+	</html>
+`)
+
 var mainPage=[]byte(`
 	<!DOCTYPE html>
 	<html>
@@ -95,6 +107,8 @@ type Data struct{
 	Password string
 }
 
+//converts request body in Data struct
+//The received data is transferred to a template for generating html markup.
 func GetBody(req request.Request)(d Data){
 	var logAndPass []string
 	params:=strings.Split(string(req.Body),"&") //[login=l,password=p]
@@ -109,7 +123,7 @@ func GetBody(req request.Request)(d Data){
 	return d
 }
 
-func (d *Data) MakePostAnswer() (responseBody []byte){
+func (d *Data) MakePostAnswer() (responseHtml []byte){
 	var postAnswer =string(
 `<!DOCTYPE html>
 <html>
@@ -121,22 +135,24 @@ You entered: {{.Login}} {{.Password}}
 </body>
 </html>
 `)
-	t,err:=template.New("webpage").Parse(postAnswer)
+	t,err:=template.New("webPage").Parse(postAnswer)
 	if err!=nil{
 		logrus.Error("Error parsing html: ",err)
 	}
+	//creates temporary file to store generated html
 	f,e:=os.Create("temp.txt")
 	if e!=nil{
 		logrus.Error("Error creating file temp.txt")
 	}
+	//writes html in file
 	err=t.Execute(f,d)
 	f.Close()
 	if err!=nil{
-		logrus.Error("Error execute: ",err)
+		logrus.Error("Error generating html markup: ",err)
 	}
-	responseBody,_=ioutil.ReadFile("temp.txt")
+	responseHtml,_=ioutil.ReadFile("temp.txt")
 	os.Remove("temp.txt")
-	return responseBody
+	return responseHtml
 }
 
 func FormResponse(req request.Request)(res Response){
@@ -149,22 +165,20 @@ func FormResponse(req request.Request)(res Response){
 		if req.URL.String()=="/"{
 			res.Body=mainPage
 		}else if req.URL.String()=="/login"{
-			res.SetStatusCode(200)
-			res.SetHeader("Content-Type", "text/html; charset=utf-8")
-			res.SetHeader("Connection", "Keep-Alive")
 			res.Body=loginPage
 		} else {
 			res.SetStatusCode(404)
-			res.Body=notFound
+			res.Body=badRequest
 		}
 	}else if req.Method=="POST"{
 		if req.Body==nil{
 			res.SetStatusCode(400)
 			res.SetHeader("Content-Type","text/html; charset=utf-8")
-			res.Body=notFound
+			res.Body=badRequest
 		}else {
 			res.SetStatusCode(200)
 			res.SetHeader("Content-Type","text/html; charset=utf-8")
+			res.SetHeader("Connection", "Keep-Alive")
 			data:=GetBody(req)
 			responseBody:=data.MakePostAnswer()
 			res.Body = responseBody
@@ -173,6 +187,7 @@ func FormResponse(req request.Request)(res Response){
 	return res
 }
 
+//creates response string from Response struct
 func (res *Response)MakingResponse()(response []byte){
 	responseString:=res.Method+" "+strconv.Itoa(res.Status.StatusCode)+" "+res.Status.StatusText+"\n"
 	for k,v:=range res.Headers{

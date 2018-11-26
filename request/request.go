@@ -19,10 +19,10 @@ type Request struct {
 
 //Reads request from file, reads line by line
 // and return array of single lines
-func HandleRequest(filepath string)[]string{
+func HandleRequest(filePath string)[]string{
 	logrus.Info("Started handling request")
 	RequestLines:=make([]string,0)
-	file,_:=os.Open(filepath)
+	file,_:=os.Open(filePath)
 	r:=bufio.NewReader(file)
 	for {
 		s, _, e := r.ReadLine()
@@ -32,7 +32,7 @@ func HandleRequest(filepath string)[]string{
 		RequestLines=append(RequestLines,string(s))
 	}
 	file.Close()
-	os.Remove(filepath)
+	os.Remove(filePath)
 	return RequestLines
 }
 
@@ -76,8 +76,10 @@ func FormRequest(RequestLines []string)(req Request){
 					req.Headers[keyHeader] = values
 				}else{
 					if header[0]==""{
+						//empty line in request
 						continue
 					}else {
+						//request body
 						req.Body=[]byte(header[0])
 					}
 				}
