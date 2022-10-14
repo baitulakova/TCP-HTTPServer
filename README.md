@@ -1,5 +1,7 @@
 # TCP-HTTPServer
 
-Run: go run main.go
+Run: make
 
-Working endpoints: /, /login
+Working endpoints: 
+- /
+- /login
